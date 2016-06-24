@@ -38,9 +38,7 @@ self.addEventListener('fetch', function(event: FetchEvent) {
 				return response;
 			}));
 		}
-	}
-
-	if (/\/todo\/\d+$/.test(event.request.url) && event.request.method === 'POST') {
+	} else if (/\/todo\/\d+$/.test(event.request.url) && event.request.method === 'POST') {
 		event.respondWith(self.caches.match(new Request('/todos')).then(response => {
 			return response.clone().json().then((resbody: any) => {
 				return event.request.clone().json().then(reqbody => {
@@ -55,9 +53,7 @@ self.addEventListener('fetch', function(event: FetchEvent) {
 				});
 			});
 		}));
-	}
-
-	if (/\/todo\/\d+\/update$/.test(event.request.url) && event.request.method === 'POST') {
+	} else if (/\/todo\/\d+\/update$/.test(event.request.url) && event.request.method === 'POST') {
 		event.respondWith(
 			self.caches.match(new Request('/todos')).then(response => {
 				return response.clone().json().then((resbody: any) => {
@@ -79,9 +75,7 @@ self.addEventListener('fetch', function(event: FetchEvent) {
 				});
 			})
 		);
-	}
-
-	if (/\/todo\/\d+\/delete$/.test(event.request.url) && event.request.method === 'DELETE') {
+	} else if (/\/todo\/\d+\/delete$/.test(event.request.url) && event.request.method === 'DELETE') {
 		event.respondWith(
 			self.caches.match(new Request('/todos')).then(response => {
 				return event.request.json().then((reqBody: any) => {
@@ -96,6 +90,29 @@ self.addEventListener('fetch', function(event: FetchEvent) {
 						});
 					});
 				});
+			})
+		);
+	} else {
+		event.respondWith(
+			self.caches.match(event.request)
+			.then(function(response) {
+				if (response) {
+					return response;
+				}
+				const fetchRequest = event.request.clone();
+				return self.fetch(fetchRequest).then(
+					function(response) {
+						if (!response || response.status !== 200 || response.type !== 'basic') {
+							return response;
+						}
+						const responseToCache = response.clone();
+						self.caches.open('static')
+						.then(function(cache) {
+							cache.put(event.request, responseToCache);
+						});
+						return response;
+					}
+				);
 			})
 		);
 	}
