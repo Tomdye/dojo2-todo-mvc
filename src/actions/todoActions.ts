@@ -1,4 +1,5 @@
 import createAction, { AnyAction } from 'dojo-actions/createAction';
+import request from 'dojo-core/request';
 
 interface TodoActionConfiguration {
 	widgetStore: any;
@@ -18,8 +19,31 @@ function configure (configuration: TodoActionConfiguration) {
 };
 
 function generateId (): string {
-	return `todo-${Date.now()}`;
+	return `${Date.now()}`;
 }
+
+const createMany: AnyAction = createAction({
+	configure,
+	do(todos: any[]) {
+		const widgetStore = this.configuration.widgetStore;
+		const parentId = this.configuration.parentId;
+
+		const children = todos.map((todo: any) => {
+			const label = todo.label;
+			const id = todo.id || generateId();
+			const completed = todo.completed || false;
+			const classes = completed ? ['completed'] : [];
+			return widgetStore.add({ id, label, completed, classes })
+			.then(() => id);
+		});
+
+		return Promise.all(children).then((ids) => {
+			return widgetStore.get(parentId)
+			.then((todosState: WidgetStateRecord) => [...todosState.children, ...ids])
+			.then((children: string[]) => widgetStore.patch({ id: parentId, children }));
+		});
+	}
+});
 
 const create: AnyAction = createAction({
 	configure,
@@ -34,6 +58,18 @@ const create: AnyAction = createAction({
 			.then(() => widgetStore.get(parentId))
 			.then((todosState: WidgetStateRecord) => [...todosState.children, id])
 			.then((children: string[]) => widgetStore.patch({ id: parentId, children }))
+			.then(() => {
+				return request.post('todo/' + id, {
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					data: {
+						id,
+						label,
+						completed: false
+					}
+				});
+			})
 			.then(() => id);
 	}
 });
@@ -72,6 +108,17 @@ const toggleComplete: AnyAction = createAction({
 			.then((classes: string[]) => {
 				patchObject.classes = classes;
 				return widgetStore.patch(patchObject);
+			})
+			.then(() => {
+				return request.post('todo/' + itemId + '/update', {
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					data: {
+						id: itemId,
+						completed: options.complete
+					}
+				});
 			});
 	}
 });
@@ -87,6 +134,16 @@ const destroy: AnyAction = createAction({
 		return widgetStore.get(parentId)
 			.then((todosState: WidgetStateRecord) => todosState.children.filter((id) => id !== childId))
 			.then((children: string[]) => widgetStore.patch({ id: parentId, children }))
+			.then(() => {
+				return request.delete('todo/' + childId + '/delete', {
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					data: {
+						id: childId
+					}
+				});
+			})
 			.then(() => widgetStore.delete(childId));
 	}
 });
@@ -95,9 +152,11 @@ function registerAll (configuration: TodoActionConfiguration) {
 	create.configure(configuration);
 	destroy.configure(configuration);
 	toggleComplete.configure(configuration);
+	createMany.configure(configuration);
 }
 
 export {
+	createMany as createManyAction,
 	create as createTodoAction,
 	toggleComplete as toggleCompleteTodoAction,
 	destroy as destroyTodoAction,

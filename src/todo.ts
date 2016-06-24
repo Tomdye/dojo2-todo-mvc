@@ -3,7 +3,7 @@ import createMemoryStore from 'dojo-widgets/util/createMemoryStore';
 import createPanel from 'dojo-widgets/createPanel';
 
 import todoRegistryFactory from './registry/createTodoRegistry';
-import { registerTodoActions, createTodoAction } from './actions/todoActions';
+import { registerTodoActions, createTodoAction, createManyAction } from './actions/todoActions';
 import createTodoList from './widgets/createTodoList';
 import createWidget from 'dojo-widgets/createWidget';
 import createTextInput from 'dojo-widgets/createTextInput';
@@ -11,23 +11,22 @@ import createAction from 'dojo-actions/createAction';
 
 import createRouter from 'dojo-routing/createRouter';
 import createRoute from 'dojo-routing/createRoute';
-
 import createHashHistory from 'dojo-routing/history/createHashHistory';
 import request from 'dojo-core/request';
-
-const history = createHashHistory();
-
-request.get('blah/test').then(() => {
-	debugger;
-});
 
 import createApp from 'dojo-app/createApp';
 
 const app = createApp({ toAbsMid: require.toAbsMid });
 const router = createRouter();
+const history = createHashHistory();
 
 history.on('change', (event) => {
 	router.dispatch({}, event.value);
+});
+
+request.get('todos', { responseType: 'json' }).then((response) => {
+	const todos = response.data;
+	createManyAction.do(todos);
 });
 
 router.append(createRoute({
@@ -58,7 +57,15 @@ const widgetStore = createMemoryStore({
 		{'id': 'todo-header-title', 'label': 'todos'},
 		{'id': 'todo-new-item', 'classes': ['new-todo'], 'placeholder': 'What needs to be done?'},
 		{'id': 'todo-add', 'label': 'Add Todo'},
-		{'id': 'button', 'label': 'button'}
+		{'id': 'todo-footer', 'classes': ['footer']},
+		{'id': 'todo-count', 'classes': ['todo-count']},
+		{'id': 'todo-count-number', 'label': '0 '},
+		{'id': 'todo-count-label', 'label': 'items left'},
+		{'id': 'filters', 'classes': ['filters']},
+		{'id': 'all-filter', 'label': 'All', 'classes': ['selected']},
+		{'id': 'active-filter', 'label': 'Active'},
+		{'id': 'completed-filter', 'label': 'Completed'},
+		{'id': 'clear-completed', 'label': 'Clear completed', 'classes': ['hidden', 'clear-completed']}
 	]
 });
 

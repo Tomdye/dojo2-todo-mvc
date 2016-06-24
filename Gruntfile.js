@@ -6,7 +6,6 @@ module.exports = function (grunt) {
 		copy: {
 			staticFiles: {
 				expand: true,
-				flatten: true,
 				cwd: '.',
 				src: staticFiles,
 				dest: '<%= devDirectory %>'

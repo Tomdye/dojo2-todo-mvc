@@ -1,5 +1,5 @@
 (<DojoLoader.RootRequire> require).config({
-	baseUrl: '../',
+	baseUrl: '../../',
 	packages: [
 		{ name: 'src', location: '_build/src' },
 		{ name: 'dojo-actions', location: 'node_modules/dojo-actions/dist/umd' },
@@ -24,5 +24,15 @@
 	}
 });
 
-/* Requiring in the main module */
+if ('serviceWorker' in navigator) {
+	navigator.serviceWorker.register('sw.js').then(function(registration) {
+		console.log('registered');
+	});
+
+	navigator.serviceWorker.ready.then(function() {
+		console.log('ready');
+	});
+}
+
 require([ 'src/todo' ], function () {});
+

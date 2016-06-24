@@ -2,24 +2,37 @@
 <html>
 <head>
 	<title>dojo2 todo mvc</title>
-	<link rel="stylesheet" href="./../node_modules/todomvc-common/base.css">
-	<link rel="stylesheet" href="./../node_modules/todomvc-app-css/index.css">
+	<link rel="stylesheet" href="./../../node_modules/todomvc-common/base.css">
+	<link rel="stylesheet" href="./../../node_modules/todomvc-app-css/index.css">
 </head>
 <body>
-	<script type="text/javascript">
-		if ('serviceWorker' in navigator) {
-			navigator.serviceWorker.register('./src/sw.js').then(() => { console.log('Service Worker Registered'); })
-		}
-	</script>
-	<script src="./../node_modules/dojo-loader/dist/umd/loader.min.js"></script>
-	<script src="./src/index.js"></script>
+	<script src="./../../node_modules/dojo-loader/dist/umd/loader.min.js"></script>
+	<script src="./index.js"></script>
 	<widget-projector>
 		<div is="widget-instance" id="todo-app">
-			<dojo-parent-widget data-options='{"id":"todo-header","tagName":"header","stateFrom":"widget-store"}'>
-				<dojo-widget data-options='{"id": "todo-header-title","tagName": "h1","stateFrom":"widget-store"}'></dojo-widget>
+			<dojo-parent-widget data-options='{"tagName":"header"}'>
+				<dojo-widget data-options='{"id":"todo-header-title","tagName": "h1","stateFrom":"widget-store"}'></dojo-widget>
 				<div is="widget-instance" id="todo-new-item"></div>
 			</dojo-parent-widget>
 			<div is="widget-instance" id="todo-list"></div>
+			<dojo-parent-widget data-options='{"id":"todo-footer","tagName":"footer","stateFrom":"widget-store"}'>
+				<dojo-parent-widget data-options='{"id":"todo-count","tagName":"span","stateFrom": "widget-store"}'>
+					<dojo-widget data-options='{"id":"todo-count-number","tagName":"strong","stateFrom":"widget-store"}'></dojo-widget>
+					<dojo-widget data-options='{"id":"todo-count-label","tagName":"span","stateFrom":"widget-store"}'></dojo-widget>
+				</dojo-parent-widget>
+				<dojo-parent-widget data-options='{"id":"filters","tagName":"ul","stateFrom":"widget-store"}'>
+					<dojo-parent-widget data-options='{"tagName":"li"}'>
+						<dojo-widget data-options='{"id":"all-filter","tagName":"a","stateFrom":"widget-store"}'></dojo-widget>
+					</dojo-parent-widget>
+					<dojo-parent-widget data-options='{"tagName":"li"}'>
+						<dojo-widget data-options='{"id":"active-filter","tagName":"a","stateFrom":"widget-store"}'></dojo-widget>
+					</dojo-parent-widget>
+					<dojo-parent-widget data-options='{"tagName":"li"}'>
+						<dojo-widget data-options='{"id":"completed-filter","tagName":"a","stateFrom":"widget-store"}'></dojo-widget>
+					</dojo-parent-widget>
+				</dojo-parent-widget>
+				<dojo-widget data-options='{"id":"clear-completed","tagName":"button","stateFrom":"widget-store"}'></dojo-widget>
+			</dojo-parent-widget>
 		</div>
 	</widget-projector>
 </body>
