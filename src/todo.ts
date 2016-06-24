@@ -7,7 +7,6 @@ import { registerTodoActions, createTodoAction } from './actions/todoActions';
 import createTodoList from './widgets/createTodoList';
 import createWidget from 'dojo-widgets/createWidget';
 import createTextInput from 'dojo-widgets/createTextInput';
-import createTodoHeader from './widgets/createTodoHeader';
 import createAction from 'dojo-actions/createAction';
 
 import createRouter from 'dojo-routing/createRouter';
@@ -101,11 +100,6 @@ app.loadDefinition({
 			listeners: {
 				keypress: 'add-todo'
 			}
-		},
-		{
-			id: 'todo-header',
-			factory: createTodoHeader,
-			stateFrom: 'widget-store'
 		},
 		{
 			id: 'todo-list',

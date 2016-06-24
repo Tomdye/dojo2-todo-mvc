@@ -23,7 +23,6 @@
 		"./src/todo.ts",
 		"./src/todoItem.ts",
 		"./src/widgets/createCheckboxInput.ts",
-		"./src/widgets/createTodoHeader.ts",
 		"./src/widgets/createTodoItem.ts",
 		"./src/widgets/createTodoList.ts",
 		"./tests/functional/all.ts",
