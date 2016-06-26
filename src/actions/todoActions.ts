@@ -22,6 +22,19 @@ function generateId (): string {
 	return `${Date.now()}`;
 }
 
+const counterUpdate: AnyAction = createAction({
+	configure,
+	do(options: any) {
+		const widgetStore = this.configuration.widgetStore;
+		const label = options.count === 1 ? ' item left' : ' items left';
+
+		return Promise.all([
+			widgetStore.patch({'id': 'todo-count-number', 'label': options.count.toString()}),
+			widgetStore.patch({'id': 'todo-count-label', label})
+		]);
+	}
+});
+
 const createMany: AnyAction = createAction({
 	configure,
 	do(todos: any[]) {
@@ -40,7 +53,12 @@ const createMany: AnyAction = createAction({
 		return Promise.all(children).then((ids) => {
 			return widgetStore.get(parentId)
 			.then((todosState: WidgetStateRecord) => [...todosState.children, ...ids])
-			.then((children: string[]) => widgetStore.patch({ id: parentId, children }));
+			.then((children: string[]) => {
+				return Promise.all([
+					widgetStore.patch({ id: parentId, children }),
+					counterUpdate.do({'count': children.length})
+				]);
+			});
 		});
 	}
 });
@@ -57,7 +75,12 @@ const create: AnyAction = createAction({
 		return widgetStore.add({ id, label, completed: false, classes: [] })
 		.then(() => widgetStore.get(parentId))
 		.then((todosState: WidgetStateRecord) => [...todosState.children, id])
-		.then((children: string[]) => widgetStore.patch({ id: parentId, children }))
+		.then((children: string[]) => {
+			return Promise.all([
+				widgetStore.patch({ id: parentId, children }),
+				counterUpdate.do({'count': children.length})
+			]);
+		})
 		.then(() => {
 			return request.post('todo/' + id, {
 				headers: {
@@ -129,7 +152,12 @@ const destroy: AnyAction = createAction({
 
 		return widgetStore.get(parentId)
 		.then((todosState: WidgetStateRecord) => todosState.children.filter((id) => id !== childId))
-		.then((children: string[]) => widgetStore.patch({ id: parentId, children }))
+		.then((children: string[]) => {
+			return Promise.all([
+				widgetStore.patch({ id: parentId, children }),
+				counterUpdate.do({'count': children.length})
+			]);
+		})
 		.then(() => {
 			return request.delete('todo/' + childId + '/delete', {
 				headers: {
@@ -232,6 +260,7 @@ function registerAll (configuration: TodoActionConfiguration) {
 	saveTodoEdit.configure(configuration);
 	exitTodoEdit.configure(configuration);
 	filter.configure(configuration);
+	counterUpdate.configure(configuration);
 }
 
 export {
@@ -243,5 +272,6 @@ export {
 	saveTodoEdit as saveTodoEditAction,
 	exitTodoEdit as exitTodoEditAction,
 	filter as filterAction,
+	counterUpdate as counterUpdateAction,
 	registerAll as registerTodoActions
 };
