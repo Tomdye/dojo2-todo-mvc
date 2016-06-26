@@ -31,6 +31,16 @@ function getTodoListItems(widgetStore: any) {
 	});
 }
 
+function chain(array: any, fn: any) {
+	const first = array.shift();
+
+	return array.reduce((defPrevious: any, current: any) => {
+		return defPrevious.then(() => {
+			return fn(current);
+		});
+	}, fn(first));
+};
+
 const checkTodoItemCount: AnyAction = createAction({
 	configure,
 	do() {
@@ -43,6 +53,28 @@ const checkTodoItemCount: AnyAction = createAction({
 				widgetStore.patch({'id': state.id, 'classes': setClass(state, 'hidden', action)})));
 
 			return Promise.all(promises);
+		});
+	}
+});
+
+const toggleStates: AnyAction = createAction({
+	configure,
+	do() {
+		const widgetStore = this.configuration.widgetStore;
+		getTodoListItems(widgetStore).then((todoItems: any[]) => {
+			const itemsLeft = todoItems.some((item: any) => {
+				return !item.completed;
+			});
+			const anyCompleted = todoItems.some((item: any) => {
+				return item.completed;
+			});
+			return Promise.all([
+				widgetStore.patch({'id': 'todo-toggle-all', 'checked': !itemsLeft}),
+				widgetStore.get('clear-completed').then((state: any) => {
+					const action = anyCompleted ? 'remove' : 'add';
+					return widgetStore.patch({'id': 'clear-completed', 'classes': setClass(state, 'hidden', action)});
+				})
+			]);
 		});
 	}
 });
@@ -60,7 +92,8 @@ const counterUpdate: AnyAction = createAction({
 			return Promise.all([
 				widgetStore.patch({'id': 'todo-count-number', 'label': itemsLeft.length.toString()}),
 				widgetStore.patch({'id': 'todo-count-label', label}),
-				checkTodoItemCount.do()
+				checkTodoItemCount.do(),
+				toggleStates.do()
 			]);
 		});
 	}
@@ -172,24 +205,30 @@ const destroy: AnyAction = createAction({
 	do(options: any) {
 		const widgetStore = this.configuration.widgetStore;
 		const parentId = this.configuration.parentId;
-
-		const childId = options.id;
+		const childIds = options.ids || [options.id];
 
 		return widgetStore.get(parentId)
-		.then((todosState: WidgetStateRecord) => todosState.children.filter((id) => id !== childId))
+		.then((todosState: WidgetStateRecord) => todosState.children.filter((id) => childIds.indexOf(id) === -1))
 		.then((children: string[]) => widgetStore.patch({ id: parentId, children }))
 		.then(() => counterUpdate.do())
 		.then(() => {
-			return request.delete('todo/' + childId + '/delete', {
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				data: {
-					id: childId
-				}
+			return chain(childIds, function(id: any) {
+				return request.delete('todo/' + id + '/delete', {
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					data: {
+						id
+					}
+				});
 			});
 		})
-		.then(() => widgetStore.delete(childId));
+		.then(() => {
+			const promises = childIds.map((id: string) => {
+				widgetStore.delete(id);
+			});
+			return Promise.all(promises);
+		});
 	}
 });
 
@@ -278,10 +317,35 @@ const toggleAll: AnyAction = createAction({
 		this.configuration.getStore('widget-store').then((widgetStore: any) => {
 			return widgetStore.get('todo-toggle-all').then((toggleAllState: any) => {
 				return getTodoListItems(widgetStore).then((todoItems: any) => {
-					const action = toggleAllState.checked ? 'remove' : 'add';
-					const promises = todoItems.map((item: any) => toggleComplete.do({'id': item.id, 'complete': !toggleAllState.checked, action }));
-					return Promise.all(promises);
-				}).then(() => widgetStore.patch({'id': 'todo-toggle-all', 'checked': !toggleAllState.checked}));
+					const checked = toggleAllState.checked;
+					const action = checked ? 'remove' : 'add';
+					return chain(todoItems, function(item: any) {
+						return toggleComplete.do({'id': item.id, 'complete': !checked, action });
+					});
+				});
+			});
+		});
+	}
+});
+
+const clearCompleted: AnyAction = createAction({
+	configure,
+	do() {
+		return this.configuration.getStore('widget-store').then((widgetStore: any) => {
+			return getTodoListItems(widgetStore).then((childWidgets: any) => {
+				const ids = childWidgets.reduce((previous: any, current: any) => {
+					if (current.completed) {
+						previous.push(current.id);
+					}
+					return previous;
+				}, []);
+				if (ids.length > 0) {
+					return destroy.do({ids}).then(() => {
+						return widgetStore.get('clear-completed').then((widgetState: any) => {
+							return widgetStore.patch({'id': 'clear-completed', 'classes': setClass(widgetState, 'hidden', 'add')});
+						});
+					});
+				}
 			});
 		});
 	}
@@ -298,6 +362,7 @@ function registerAll (configuration: TodoActionConfiguration) {
 	filter.configure(configuration);
 	counterUpdate.configure(configuration);
 	checkTodoItemCount.configure(configuration);
+	toggleStates.configure(configuration);
 }
 
 export {
@@ -310,5 +375,6 @@ export {
 	exitTodoEdit as exitTodoEditAction,
 	filter as filterAction,
 	toggleAll as toggleAllAction,
+	clearCompleted as clearCompletedAction,
 	registerAll as registerTodoActions
 };

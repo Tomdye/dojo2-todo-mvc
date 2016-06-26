@@ -7,7 +7,9 @@ import {
 	createTodoAction,
 	createManyAction,
 	filterAction,
-	toggleAllAction } from './actions/todoActions';
+	toggleAllAction,
+	clearCompletedAction
+} from './actions/todoActions';
 import createTodoList from './widgets/createTodoList';
 import createWidget from 'dojo-widgets/createWidget';
 import createCheckboxInput from './widgets/createCheckboxInput';
@@ -63,8 +65,8 @@ const widgetStore = createMemoryStore({
 		{'id': 'todo-header-title', 'label': 'todos'},
 		{'id': 'todo-new-item', 'classes': ['new-todo'], 'placeholder': 'What needs to be done?'},
 		{'id': 'todo-add', 'label': 'Add Todo'},
-		{'id': 'main-section', 'classes': ['main']},
-		{'id': 'todo-footer', 'classes': ['footer']},
+		{'id': 'main-section', 'classes': ['main', 'hidden']},
+		{'id': 'todo-footer', 'classes': ['footer', 'hidden']},
 		{'id': 'todo-toggle-all', 'classes': ['toggle-all'], 'checked': false},
 		{'id': 'todo-count', 'classes': ['todo-count']},
 		{'id': 'todo-count-number', 'label': '0 '},
@@ -73,7 +75,7 @@ const widgetStore = createMemoryStore({
 		{'id': 'all-filter', 'label': 'All', 'classes': ['selected']},
 		{'id': 'active-filter', 'label': 'Active'},
 		{'id': 'completed-filter', 'label': 'Completed'},
-		{'id': 'clear-completed', 'label': 'Clear completed', 'classes': ['hidden', 'clear-completed']}
+		{'id': 'clear-completed', 'label': 'Clear completed', 'classes': ['clear-completed']}
 	]
 });
 
@@ -118,6 +120,7 @@ app.registerAction('toggle-all', toggleAllAction);
 app.registerAction('goto-completed', gotoCompleted);
 app.registerAction('goto-active', gotoActive);
 app.registerAction('goto-all', gotoAll);
+app.registerAction('clear-completed', clearCompletedAction);
 
 app.loadDefinition({
 	widgets: [
