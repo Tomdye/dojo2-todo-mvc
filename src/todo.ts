@@ -115,7 +115,7 @@ app.loadDefinition({
 			}
 		},
 		{
-			id: 'todo-list-view',
+			id: 'todo-list',
 			factory: createTodoList,
 			stateFrom: 'widget-store',
 			options: {
