@@ -24,14 +24,25 @@ function generateId (): string {
 
 const counterUpdate: AnyAction = createAction({
 	configure,
-	do(options: any) {
+	do() {
 		const widgetStore = this.configuration.widgetStore;
-		const label = options.count === 1 ? ' item left' : ' items left';
 
-		return Promise.all([
-			widgetStore.patch({'id': 'todo-count-number', 'label': options.count.toString()}),
-			widgetStore.patch({'id': 'todo-count-label', label})
-		]);
+		return widgetStore.get('todo-list').then((parent: any) => {
+			const promises = parent.children.map((child: any) => {
+				return widgetStore.get(child);
+			});
+
+			return Promise.all(promises).then((childrenWidgets) => {
+				const itemsLeft = childrenWidgets.filter((childWidget: any) => {
+					return !childWidget.completed;
+				});
+				const label = itemsLeft.length === 1 ? ' item left' : ' items left';
+				return Promise.all([
+					widgetStore.patch({'id': 'todo-count-number', 'label': itemsLeft.length.toString()}),
+					widgetStore.patch({'id': 'todo-count-label', label})
+				]);
+			});
+		});
 	}
 });
 
@@ -53,12 +64,8 @@ const createMany: AnyAction = createAction({
 		return Promise.all(children).then((ids) => {
 			return widgetStore.get(parentId)
 			.then((todosState: WidgetStateRecord) => [...todosState.children, ...ids])
-			.then((children: string[]) => {
-				return Promise.all([
-					widgetStore.patch({ id: parentId, children }),
-					counterUpdate.do({'count': children.length})
-				]);
-			});
+			.then((children: string[]) => widgetStore.patch({ id: parentId, children }))
+			.then(() => counterUpdate.do());
 		});
 	}
 });
@@ -75,12 +82,8 @@ const create: AnyAction = createAction({
 		return widgetStore.add({ id, label, completed: false, classes: [] })
 		.then(() => widgetStore.get(parentId))
 		.then((todosState: WidgetStateRecord) => [...todosState.children, id])
-		.then((children: string[]) => {
-			return Promise.all([
-				widgetStore.patch({ id: parentId, children }),
-				counterUpdate.do({'count': children.length})
-			]);
-		})
+		.then((children: string[]) => widgetStore.patch({ id: parentId, children }))
+		.then(() => counterUpdate.do())
 		.then(() => {
 			return request.post('todo/' + id, {
 				headers: {
@@ -131,6 +134,7 @@ const toggleComplete: AnyAction = createAction({
 			patchObject.classes = classes;
 			return widgetStore.patch(patchObject);
 		})
+		.then(() => counterUpdate.do())
 		.then(() => {
 			return request.post('todo/' + itemId + '/update', {
 				headers: {
@@ -152,12 +156,8 @@ const destroy: AnyAction = createAction({
 
 		return widgetStore.get(parentId)
 		.then((todosState: WidgetStateRecord) => todosState.children.filter((id) => id !== childId))
-		.then((children: string[]) => {
-			return Promise.all([
-				widgetStore.patch({ id: parentId, children }),
-				counterUpdate.do({'count': children.length})
-			]);
-		})
+		.then((children: string[]) => widgetStore.patch({ id: parentId, children }))
+		.then(() => counterUpdate.do())
 		.then(() => {
 			return request.delete('todo/' + childId + '/delete', {
 				headers: {
