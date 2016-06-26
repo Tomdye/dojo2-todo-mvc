@@ -60,7 +60,7 @@ self.addEventListener('fetch', function(event: FetchEvent) {
 					return event.request.clone().json().then((reqbody: any) => {
 						const updatedResponse = resbody.map((item: any) => {
 							if (item.id === reqbody.id) {
-								return Object.assign(item, {completed: reqbody.completed});
+								return Object.assign(item, reqbody);
 							}
 							return item;
 						});
@@ -92,7 +92,8 @@ self.addEventListener('fetch', function(event: FetchEvent) {
 				});
 			})
 		);
-	} else {
+	}
+	else {
 		event.respondWith(
 			self.caches.match(event.request)
 			.then(function(response) {

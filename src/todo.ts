@@ -83,8 +83,8 @@ registerTodoActions({ widgetStore, parentId });
 const addTodo = createAction({
 	do(e: any) {
 		const event: KeyboardEvent = e.event;
-		if (event.keyCode === 13) {
-			const target = <any> event.target;
+		const target = <any> event.target;
+		if (event.keyCode === 13 && target.value) {
 			widgetStore.patch({'id': 'todo-new-item', 'value': ''});
 			createTodoAction.do({
 				label: target.value
@@ -115,7 +115,7 @@ app.loadDefinition({
 			}
 		},
 		{
-			id: 'todo-list',
+			id: 'todo-list-view',
 			factory: createTodoList,
 			stateFrom: 'widget-store',
 			options: {
@@ -132,7 +132,6 @@ app.loadDefinition({
 			name: 'dojo-parent-widget',
 			factory: createPanel
 		}
-
 	]
 });
 

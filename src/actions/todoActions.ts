@@ -55,22 +55,22 @@ const create: AnyAction = createAction({
 		const label = options.label;
 
 		return widgetStore.add({ id, label, completed: false, classes: [] })
-			.then(() => widgetStore.get(parentId))
-			.then((todosState: WidgetStateRecord) => [...todosState.children, id])
-			.then((children: string[]) => widgetStore.patch({ id: parentId, children }))
-			.then(() => {
-				return request.post('todo/' + id, {
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					data: {
-						id,
-						label,
-						completed: false
-					}
-				});
-			})
-			.then(() => id);
+		.then(() => widgetStore.get(parentId))
+		.then((todosState: WidgetStateRecord) => [...todosState.children, id])
+		.then((children: string[]) => widgetStore.patch({ id: parentId, children }))
+		.then(() => {
+			return request.post('todo/' + id, {
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				data: {
+					id,
+					label,
+					completed: false
+				}
+			});
+		})
+		.then(() => id);
 	}
 });
 
@@ -82,15 +82,14 @@ interface CompletePatchObject {
 
 const todoCompleteClass = 'completed';
 
-function setComplete(todoItemState: any) {
-	if (todoItemState.classes.indexOf(todoCompleteClass) < 0) {
-		todoItemState.classes.push(todoCompleteClass);
+function toggleClass(todoItemState: any, className: string) {
+	const idx = todoItemState.classes.indexOf(className);
+	if (idx  === -1) {
+		todoItemState.classes.push(className);
+	} else {
+		todoItemState.classes.splice(idx, 1);
 	}
 	return todoItemState.classes;
-}
-
-function setIncomplete(todoItemState: any) {
-	return todoItemState.classes.filter((className: string) => className !== todoCompleteClass);
 }
 
 const toggleComplete: AnyAction = createAction({
@@ -104,22 +103,19 @@ const toggleComplete: AnyAction = createAction({
 		};
 
 		return widgetStore.get(itemId)
-			.then((todoItemState: any) => options.complete ? setComplete(todoItemState) : setIncomplete(todoItemState))
-			.then((classes: string[]) => {
-				patchObject.classes = classes;
-				return widgetStore.patch(patchObject);
-			})
-			.then(() => {
-				return request.post('todo/' + itemId + '/update', {
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					data: {
-						id: itemId,
-						completed: options.complete
-					}
-				});
+		.then((todoItemState: any) => toggleClass(todoItemState, todoCompleteClass))
+		.then((classes: string[]) => {
+			patchObject.classes = classes;
+			return widgetStore.patch(patchObject);
+		})
+		.then(() => {
+			return request.post('todo/' + itemId + '/update', {
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				data: patchObject
 			});
+		});
 	}
 });
 
@@ -132,19 +128,74 @@ const destroy: AnyAction = createAction({
 		const childId = options.id;
 
 		return widgetStore.get(parentId)
-			.then((todosState: WidgetStateRecord) => todosState.children.filter((id) => id !== childId))
-			.then((children: string[]) => widgetStore.patch({ id: parentId, children }))
+		.then((todosState: WidgetStateRecord) => todosState.children.filter((id) => id !== childId))
+		.then((children: string[]) => widgetStore.patch({ id: parentId, children }))
+		.then(() => {
+			return request.delete('todo/' + childId + '/delete', {
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				data: {
+					id: childId
+				}
+			});
+		})
+		.then(() => widgetStore.delete(childId));
+	}
+});
+
+const enterTodoEdit: AnyAction = createAction({
+	configure,
+	do(options: any) {
+		const widgetStore = this.configuration.widgetStore;
+		const itemId = options.id;
+		const patchObject: any = {
+			id: itemId
+		};
+
+		return widgetStore.get(itemId)
+		.then((todoItemState: any) => toggleClass(todoItemState, 'editing'))
+		.then((classes: string[]) => {
+			patchObject.classes = classes;
+			return widgetStore.patch(patchObject);
+		});
+	}
+});
+
+const saveTodoEdit: AnyAction = createAction({
+	configure,
+	do(options: any) {
+		const target = <any> options.event.target;
+		const widgetStore = this.configuration.widgetStore;
+		const itemId = options.id;
+		const patchObject: any = {
+			id: itemId,
+			label: target.value
+		};
+
+		if (options.event.keyCode === 13 && target.value) {
+			return widgetStore.get(itemId)
+			.then((todoItemState: any) => toggleClass(todoItemState, 'editing'))
+			.then((classes: string[]) => {
+				patchObject.classes = classes;
+				return widgetStore.patch(patchObject);
+			})
 			.then(() => {
-				return request.delete('todo/' + childId + '/delete', {
+				return request.post('todo/' + itemId + '/update', {
 					headers: {
 						'Content-Type': 'application/json'
 					},
-					data: {
-						id: childId
-					}
+					data: patchObject
 				});
-			})
-			.then(() => widgetStore.delete(childId));
+			});
+		}
+	}
+});
+
+const exitTodoEdit: AnyAction = createAction({
+	configure,
+	do(options: any) {
+		console.log('blur');
 	}
 });
 
@@ -153,6 +204,9 @@ function registerAll (configuration: TodoActionConfiguration) {
 	destroy.configure(configuration);
 	toggleComplete.configure(configuration);
 	createMany.configure(configuration);
+	enterTodoEdit.configure(configuration);
+	saveTodoEdit.configure(configuration);
+	exitTodoEdit.configure(configuration);
 }
 
 export {
@@ -160,5 +214,8 @@ export {
 	create as createTodoAction,
 	toggleComplete as toggleCompleteTodoAction,
 	destroy as destroyTodoAction,
+	enterTodoEdit as enterTodoEditAction,
+	saveTodoEdit as saveTodoEditAction,
+	exitTodoEdit as exitTodoEditAction,
 	registerAll as registerTodoActions
 };
