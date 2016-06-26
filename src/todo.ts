@@ -2,9 +2,15 @@ import createMemoryStore from 'dojo-widgets/util/createMemoryStore';
 import createPanel from 'dojo-widgets/createPanel';
 
 import todoRegistryFactory from './registry/createTodoRegistry';
-import { registerTodoActions, createTodoAction, createManyAction, filterAction } from './actions/todoActions';
+import {
+	registerTodoActions,
+	createTodoAction,
+	createManyAction,
+	filterAction,
+	toggleAllAction } from './actions/todoActions';
 import createTodoList from './widgets/createTodoList';
 import createWidget from 'dojo-widgets/createWidget';
+import createCheckboxInput from './widgets/createCheckboxInput';
 import createTextInput from 'dojo-widgets/createTextInput';
 import createAction from 'dojo-actions/createAction';
 
@@ -57,7 +63,9 @@ const widgetStore = createMemoryStore({
 		{'id': 'todo-header-title', 'label': 'todos'},
 		{'id': 'todo-new-item', 'classes': ['new-todo'], 'placeholder': 'What needs to be done?'},
 		{'id': 'todo-add', 'label': 'Add Todo'},
+		{'id': 'main-section', 'classes': ['main']},
 		{'id': 'todo-footer', 'classes': ['footer']},
+		{'id': 'todo-toggle-all', 'classes': ['toggle-all'], 'checked': false},
 		{'id': 'todo-count', 'classes': ['todo-count']},
 		{'id': 'todo-count-number', 'label': '0 '},
 		{'id': 'todo-count-label', 'label': 'items left'},
@@ -106,6 +114,7 @@ const gotoAll = createAction({
 });
 
 app.registerAction('add-todo', addTodo);
+app.registerAction('toggle-all', toggleAllAction);
 app.registerAction('goto-completed', gotoCompleted);
 app.registerAction('goto-active', gotoActive);
 app.registerAction('goto-all', gotoAll);
@@ -126,6 +135,22 @@ app.loadDefinition({
 			stateFrom: 'widget-store',
 			listeners: {
 				keypress: 'add-todo'
+			}
+		},
+		{
+			id: 'main-section',
+			factory: createPanel,
+			stateFrom: 'widget-store',
+			options: {
+				tagName: 'section'
+			}
+		},
+		{
+			id: 'todo-toggle-all',
+			factory: createCheckboxInput,
+			stateFrom: 'widget-store',
+			listeners: {
+				change: 'toggle-all'
 			}
 		},
 		{

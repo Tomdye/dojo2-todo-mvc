@@ -14,7 +14,10 @@
 				<dojo-widget data-options='{"id":"todo-header-title","tagName": "h1","stateFrom":"widget-store"}'></dojo-widget>
 				<div is="widget-instance" id="todo-new-item"></div>
 			</dojo-parent-widget>
-			<div is="widget-instance" id="todo-list"></div>
+			<div is="widget-instance" id="main-section">
+				<div is="widget-instance" id="todo-list"></div>
+				<div is="widget-instance" id="todo-toggle-all"></div>
+			</div>
 			<dojo-parent-widget data-options='{"id":"todo-footer","tagName":"footer","stateFrom":"widget-store"}'>
 				<dojo-parent-widget data-options='{"id":"todo-count","tagName":"span","stateFrom": "widget-store"}'>
 					<dojo-widget data-options='{"id":"todo-count-number","tagName":"strong","stateFrom":"widget-store"}'></dojo-widget>
