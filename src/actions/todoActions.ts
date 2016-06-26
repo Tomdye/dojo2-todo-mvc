@@ -199,6 +199,30 @@ const exitTodoEdit: AnyAction = createAction({
 	}
 });
 
+const filter: AnyAction = createAction({
+	configure,
+	do(options: any) {
+		const widgetStore = this.configuration.widgetStore;
+		const allClasses: string[] = [];
+		const activeClasses: string[] = [];
+		const completedClasses: string[] = [];
+		if (options.filter === 'completed') {
+			completedClasses.push('selected');
+		} else if (options.filter === 'active') {
+			activeClasses.push('selected');
+		} else {
+			allClasses.push('selected');
+		}
+
+		return Promise.all([
+			widgetStore.patch({'id': 'todo-list', 'filter': options.filter}),
+			widgetStore.patch({'id': 'all-filter', 'classes': allClasses}),
+			widgetStore.patch({'id': 'active-filter', 'classes': activeClasses}),
+			widgetStore.patch({'id': 'completed-filter', 'classes': completedClasses})
+		]);
+	}
+});
+
 function registerAll (configuration: TodoActionConfiguration) {
 	create.configure(configuration);
 	destroy.configure(configuration);
@@ -207,6 +231,7 @@ function registerAll (configuration: TodoActionConfiguration) {
 	enterTodoEdit.configure(configuration);
 	saveTodoEdit.configure(configuration);
 	exitTodoEdit.configure(configuration);
+	filter.configure(configuration);
 }
 
 export {
@@ -217,5 +242,6 @@ export {
 	enterTodoEdit as enterTodoEditAction,
 	saveTodoEdit as saveTodoEditAction,
 	exitTodoEdit as exitTodoEditAction,
+	filter as filterAction,
 	registerAll as registerTodoActions
 };

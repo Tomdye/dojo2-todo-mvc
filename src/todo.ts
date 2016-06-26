@@ -1,9 +1,8 @@
-
 import createMemoryStore from 'dojo-widgets/util/createMemoryStore';
 import createPanel from 'dojo-widgets/createPanel';
 
 import todoRegistryFactory from './registry/createTodoRegistry';
-import { registerTodoActions, createTodoAction, createManyAction } from './actions/todoActions';
+import { registerTodoActions, createTodoAction, createManyAction, filterAction } from './actions/todoActions';
 import createTodoList from './widgets/createTodoList';
 import createWidget from 'dojo-widgets/createWidget';
 import createTextInput from 'dojo-widgets/createTextInput';
@@ -24,6 +23,7 @@ history.on('change', (event) => {
 	router.dispatch({}, event.value);
 });
 
+// get initial todos
 request.get('todos', { responseType: 'json' }).then((response) => {
 	const todos = response.data;
 	createManyAction.do(todos);
@@ -32,21 +32,21 @@ request.get('todos', { responseType: 'json' }).then((response) => {
 router.append(createRoute({
 	path: '/completed',
 	exec (request) {
-		console.log('completed route');
+		filterAction.do({ 'filter': 'completed' });
 	}
 }));
 
 router.append(createRoute({
 	path: '/all',
 	exec (request) {
-		console.log('all route');
+		filterAction.do({ 'filter': 'none' });
 	}
 }));
 
 router.append(createRoute({
 	path: '/active',
 	exec (request) {
-		console.log('active route');
+		filterAction.do({ 'filter': 'active' });
 	}
 }));
 
@@ -71,12 +71,6 @@ const widgetStore = createMemoryStore({
 
 app.registerStore('widget-store', widgetStore);
 
-const gotoRoute = createAction({
-	do() {
-		history.set('/completed');
-	}
-});
-
 const parentId = 'todo-list';
 registerTodoActions({ widgetStore, parentId });
 
@@ -93,8 +87,28 @@ const addTodo = createAction({
 	}
 });
 
+const gotoCompleted = createAction({
+	do(e: any) {
+		history.set('completed');
+	}
+});
+
+const gotoActive = createAction({
+	do(e: any) {
+		history.set('active');
+	}
+});
+
+const gotoAll = createAction({
+	do(e: any) {
+		history.set('all');
+	}
+});
+
 app.registerAction('add-todo', addTodo);
-app.registerAction('goto-route', gotoRoute);
+app.registerAction('goto-completed', gotoCompleted);
+app.registerAction('goto-active', gotoActive);
+app.registerAction('goto-all', gotoAll);
 
 app.loadDefinition({
 	widgets: [
@@ -134,6 +148,8 @@ app.loadDefinition({
 		}
 	]
 });
+
+history.set(history.current);
 
 app.realize(document.body);
 
