@@ -1,7 +1,14 @@
-import createMemoryStore from 'dojo-widgets/util/createMemoryStore';
+import createAction from 'dojo-actions/createAction';
+import createApp from 'dojo-app/createApp';
+import request from 'dojo-core/request';
+import createRoute from 'dojo-routing/createRoute';
+import createRouter from 'dojo-routing/createRouter';
+import createHashHistory from 'dojo-routing/history/createHashHistory';
 import createPanel from 'dojo-widgets/createPanel';
+import createTextInput from 'dojo-widgets/createTextInput';
+import createWidget from 'dojo-widgets/createWidget';
+import createMemoryStore from 'dojo-widgets/util/createMemoryStore';
 
-import todoRegistryFactory from './registry/createTodoRegistry';
 import {
 	createMany,
 	filter,
@@ -17,18 +24,9 @@ import {
 	saveTodoEdit,
 	exitTodoEdit
 } from './actions/todoActions';
+import todoRegistryFactory from './registry/createTodoRegistry';
 import createTodoList from './widgets/createTodoList';
-import createWidget from 'dojo-widgets/createWidget';
 import createCheckboxInput from './widgets/createCheckboxInput';
-import createTextInput from 'dojo-widgets/createTextInput';
-import createAction from 'dojo-actions/createAction';
-
-import createRouter from 'dojo-routing/createRouter';
-import createRoute from 'dojo-routing/createRoute';
-import createHashHistory from 'dojo-routing/history/createHashHistory';
-import request from 'dojo-core/request';
-
-import createApp from 'dojo-app/createApp';
 
 const app = createApp({ toAbsMid: require.toAbsMid });
 const router = createRouter();
@@ -36,12 +34,6 @@ const history = createHashHistory();
 
 history.on('change', (event) => {
 	router.dispatch({}, event.value);
-});
-
-// get initial todos
-request.get('todos', { responseType: 'json' }).then((response) => {
-	const todos = response.data;
-	createMany.do(todos);
 });
 
 router.append(createRoute({
@@ -102,19 +94,19 @@ const addTodo = createAction({
 });
 
 const gotoCompleted = createAction({
-	do(e: any) {
+	do() {
 		history.set('completed');
 	}
 });
 
 const gotoActive = createAction({
-	do(e: any) {
+	do() {
 		history.set('active');
 	}
 });
 
 const gotoAll = createAction({
-	do(e: any) {
+	do() {
 		history.set('all');
 	}
 });
@@ -207,6 +199,10 @@ Promise.all([
 	app.getAction('save-todo'),
 	app.getAction('exit-todo-edit')
 ]).then(() => {
+	request.get('todos', { responseType: 'json' }).then((response) => {
+		const todos = response.data;
+		createMany.do(todos);
+	});
 	history.set(history.current);
 	app.realize(document.body);
 });
