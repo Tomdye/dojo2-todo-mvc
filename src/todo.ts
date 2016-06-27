@@ -3,12 +3,19 @@ import createPanel from 'dojo-widgets/createPanel';
 
 import todoRegistryFactory from './registry/createTodoRegistry';
 import {
-	registerTodoActions,
-	createTodoAction,
-	createManyAction,
-	filterAction,
-	toggleAllAction,
-	clearCompletedAction
+	createMany,
+	filter,
+	toggleAll,
+	clearCompleted,
+	checkTodoItemCount,
+	toggleStates,
+	counterUpdate,
+	create,
+	toggleComplete,
+	destroy,
+	enterTodoEdit,
+	saveTodoEdit,
+	exitTodoEdit
 } from './actions/todoActions';
 import createTodoList from './widgets/createTodoList';
 import createWidget from 'dojo-widgets/createWidget';
@@ -34,27 +41,27 @@ history.on('change', (event) => {
 // get initial todos
 request.get('todos', { responseType: 'json' }).then((response) => {
 	const todos = response.data;
-	createManyAction.do(todos);
+	createMany.do(todos);
 });
 
 router.append(createRoute({
 	path: '/completed',
 	exec (request) {
-		filterAction.do({ 'filter': 'completed' });
+		filter.do({ 'filter': 'completed' });
 	}
 }));
 
 router.append(createRoute({
 	path: '/all',
 	exec (request) {
-		filterAction.do({ 'filter': 'none' });
+		filter.do({ 'filter': 'none' });
 	}
 }));
 
 router.append(createRoute({
 	path: '/active',
 	exec (request) {
-		filterAction.do({ 'filter': 'active' });
+		filter.do({ 'filter': 'active' });
 	}
 }));
 
@@ -81,16 +88,13 @@ const widgetStore = createMemoryStore({
 
 app.registerStore('widget-store', widgetStore);
 
-const parentId = 'todo-list';
-registerTodoActions({ widgetStore, parentId });
-
 const addTodo = createAction({
 	do(e: any) {
 		const event: KeyboardEvent = e.event;
 		const target = <any> event.target;
 		if (event.keyCode === 13 && target.value) {
 			widgetStore.patch({'id': 'todo-new-item', 'value': ''});
-			createTodoAction.do({
+			create.do({
 				label: target.value
 			});
 		}
@@ -116,11 +120,22 @@ const gotoAll = createAction({
 });
 
 app.registerAction('add-todo', addTodo);
-app.registerAction('toggle-all', toggleAllAction);
+app.registerAction('create', create);
+app.registerAction('toggle-all', toggleAll);
 app.registerAction('goto-completed', gotoCompleted);
 app.registerAction('goto-active', gotoActive);
 app.registerAction('goto-all', gotoAll);
-app.registerAction('clear-completed', clearCompletedAction);
+app.registerAction('clear-completed', clearCompleted);
+app.registerAction('create-many', createMany);
+app.registerAction('filter', filter);
+app.registerAction('check-item-count', checkTodoItemCount);
+app.registerAction('toggle-states', toggleStates);
+app.registerAction('update-counter', counterUpdate);
+app.registerAction('toggle-complete', toggleComplete);
+app.registerAction('destroy', destroy);
+app.registerAction('enter-todo-edit', enterTodoEdit);
+app.registerAction('save-todo', saveTodoEdit);
+app.registerAction('exit-todo-edit', exitTodoEdit);
 
 app.loadDefinition({
 	widgets: [
@@ -177,7 +192,22 @@ app.loadDefinition({
 	]
 });
 
-history.set(history.current);
-
-app.realize(document.body);
+Promise.all([
+	app.getAction('create-many'),
+	app.getAction('filter'),
+	app.getAction('toggle-all'),
+	app.getAction('clear-completed'),
+	app.getAction('check-item-count'),
+	app.getAction('toggle-states'),
+	app.getAction('update-counter'),
+	app.getAction('create'),
+	app.getAction('toggle-complete'),
+	app.getAction('destroy'),
+	app.getAction('enter-todo-edit'),
+	app.getAction('save-todo'),
+	app.getAction('exit-todo-edit')
+]).then(() => {
+	history.set(history.current);
+	app.realize(document.body);
+});
 

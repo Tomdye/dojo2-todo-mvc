@@ -4,7 +4,7 @@ import createTextInput, { TextInput } from 'dojo-widgets/createTextInput';
 import createCheckboxInput, { CheckboxInput } from './createCheckboxInput';
 import { h, VNode } from 'maquette/maquette';
 
-import { destroyTodoAction, toggleCompleteTodoAction, enterTodoEditAction, saveTodoEditAction, exitTodoEditAction } from '../actions/todoActions';
+import { destroy, toggleComplete, enterTodoEdit, saveTodoEdit, exitTodoEdit } from '../actions/todoActions';
 
 export interface TodoItemMixin {
 	childWidgets: TodoItemChildWidgets;
@@ -48,14 +48,14 @@ const createTodoItem = createWidget
 		mixin: {
 			checkboxChangeListener(e: TodoItemCheckedEvent) {
 				const todoItem: TodoItem = this;
-				toggleCompleteTodoAction.do({
+				toggleComplete.do({
 					id: todoItem.state.id,
 					complete: e.target.checked
 				});
 			},
 			deleteButtonClickListener(e: MouseEvent) {
 				const todoItem: TodoItem = this;
-				destroyTodoAction.do({
+				destroy.do({
 					id: todoItem.state.id
 				}).then(() => {
 					todoItem.invalidate();
@@ -63,15 +63,15 @@ const createTodoItem = createWidget
 			},
 			labelDblclickListener(e: MouseEvent) {
 				const todoItem: TodoItem = this;
-				enterTodoEditAction.do({id: todoItem.state.id});
+				enterTodoEdit.do({id: todoItem.state.id});
 			},
 			editInputKeyPressListener(e: KeyboardEvent) {
 				const todoItem: TodoItem = this;
-				saveTodoEditAction.do({id: todoItem.state.id, event: e});
+				saveTodoEdit.do({id: todoItem.state.id, event: e});
 			},
 			editInputBlurListener(e: Event) {
 				const todoItem: TodoItem = this;
-				exitTodoEditAction.do({id: todoItem.state.id, event: e});
+				exitTodoEdit.do({id: todoItem.state.id, event: e});
 			},
 			childWidgets: <TodoItemChildWidgets> null,
 			getChildrenNodes(): VNode[] {

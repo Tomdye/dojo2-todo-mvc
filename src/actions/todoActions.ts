@@ -1,10 +1,7 @@
 import createAction, { AnyAction } from 'dojo-actions/createAction';
 import request from 'dojo-core/request';
-
-interface TodoActionConfiguration {
-	widgetStore: any;
-	parentId: string;
-}
+import { MemoryStore } from 'dojo-widgets/util/createMemoryStore';
+import { CombinedRegistry } from 'dojo-app/createApp';
 
 interface WidgetStateRecord {
 	[prop: string]: any;
@@ -12,26 +9,41 @@ interface WidgetStateRecord {
 	classes?: string[];
 	label?: string;
 	children?: string[];
+	completed?: boolean;
+	checked?: boolean;
 }
 
-function configure (configuration: TodoActionConfiguration) {
-	this.configuration = configuration;
+interface CompletePatchObject {
+	id: string;
+	completed: boolean;
+	classes?: string[];
+}
+
+interface WithStore {
+	widgetStore?: MemoryStore<WidgetStateRecord>;
+}
+
+function configure (registry: CombinedRegistry) {
+	const action = <WithStore> this;
+	return registry.getStore('widget-store').then((widgetStore) => {
+		action.widgetStore = <MemoryStore<WidgetStateRecord>> widgetStore;
+	});
 };
 
 function generateId (): string {
 	return `${Date.now()}`;
 }
 
-function getTodoListItems(widgetStore: any) {
-	return widgetStore.get('todo-list').then((parent: any) => {
-		const promises = parent.children.map((child: any) => {
+function getTodoListItems(widgetStore: MemoryStore<WidgetStateRecord>) {
+	return widgetStore.get('todo-list').then((parent: WidgetStateRecord) => {
+		const promises = parent.children.map((child: string) => {
 			return widgetStore.get(child);
 		});
 		return Promise.all(promises);
 	});
 }
 
-function chain(array: any, fn: any) {
+function chain(array: any[], fn: any) {
 	const first = array.shift();
 
 	return array.reduce((defPrevious: any, current: any) => {
@@ -41,15 +53,27 @@ function chain(array: any, fn: any) {
 	}, fn(first));
 };
 
-const checkTodoItemCount: AnyAction = createAction({
+function setClass(todoItemState: WidgetStateRecord, className: string, action: string) {
+	const idx = todoItemState.classes.indexOf(className);
+	if (idx  === -1 && action !== 'remove') {
+		todoItemState.classes.push(className);
+	} else if (idx !== -1 && action !== 'add') {
+		todoItemState.classes.splice(idx, 1);
+	}
+	return todoItemState.classes;
+}
+
+const createActionWithStore = createAction.extend<WithStore>({});
+
+export const checkTodoItemCount: AnyAction = createActionWithStore({
 	configure,
 	do() {
-		const widgetStore = this.configuration.widgetStore;
+		const { widgetStore } = <WithStore> this;
 
-		return widgetStore.get('todo-list').then((todoList: any) => {
+		return widgetStore.get('todo-list').then((todoList: WidgetStateRecord) => {
 			const action = (todoList.children.length === 0) ? 'add' : 'remove';
 			const widgetNames = ['todo-toggle-all', 'main-section', 'todo-footer'];
-			const promises = widgetNames.map((name) => widgetStore.get(name).then((state: any) =>
+			const promises = widgetNames.map((name) => widgetStore.get(name).then((state: WidgetStateRecord) =>
 				widgetStore.patch({'id': state.id, 'classes': setClass(state, 'hidden', action)})));
 
 			return Promise.all(promises);
@@ -57,20 +81,21 @@ const checkTodoItemCount: AnyAction = createAction({
 	}
 });
 
-const toggleStates: AnyAction = createAction({
+export const toggleStates: AnyAction = createActionWithStore({
 	configure,
 	do() {
-		const widgetStore = this.configuration.widgetStore;
+		const { widgetStore } = <WithStore> this;
+
 		getTodoListItems(widgetStore).then((todoItems: any[]) => {
-			const itemsLeft = todoItems.some((item: any) => {
+			const itemsLeft = todoItems.some((item: WidgetStateRecord) => {
 				return !item.completed;
 			});
-			const anyCompleted = todoItems.some((item: any) => {
+			const anyCompleted = todoItems.some((item: WidgetStateRecord) => {
 				return item.completed;
 			});
 			return Promise.all([
 				widgetStore.patch({'id': 'todo-toggle-all', 'checked': !itemsLeft}),
-				widgetStore.get('clear-completed').then((state: any) => {
+				widgetStore.get('clear-completed').then((state: WidgetStateRecord) => {
 					const action = anyCompleted ? 'remove' : 'add';
 					return widgetStore.patch({'id': 'clear-completed', 'classes': setClass(state, 'hidden', action)});
 				})
@@ -79,13 +104,13 @@ const toggleStates: AnyAction = createAction({
 	}
 });
 
-const counterUpdate: AnyAction = createAction({
+export const counterUpdate: AnyAction = createActionWithStore({
 	configure,
 	do() {
-		const widgetStore = this.configuration.widgetStore;
+		const { widgetStore } = <WithStore> this;
 
-		return getTodoListItems(widgetStore).then((childrenWidgets: any) => {
-			const itemsLeft = childrenWidgets.filter((childWidget: any) => {
+		return getTodoListItems(widgetStore).then((childrenWidgets: any[]) => {
+			const itemsLeft = childrenWidgets.filter((childWidget: WidgetStateRecord) => {
 				return !childWidget.completed;
 			});
 			const label = itemsLeft.length === 1 ? ' item left' : ' items left';
@@ -99,13 +124,12 @@ const counterUpdate: AnyAction = createAction({
 	}
 });
 
-const createMany: AnyAction = createAction({
+export const createMany: AnyAction = createActionWithStore({
 	configure,
 	do(todos: any[]) {
-		const widgetStore = this.configuration.widgetStore;
-		const parentId = this.configuration.parentId;
+		const { widgetStore } = <WithStore> this;
 
-		const children = todos.map((todo: any) => {
+		const children = todos.map((todo: WidgetStateRecord) => {
 			const label = todo.label;
 			const id = todo.id || generateId();
 			const completed = todo.completed || false;
@@ -115,27 +139,25 @@ const createMany: AnyAction = createAction({
 		});
 
 		return Promise.all(children).then((ids) => {
-			return widgetStore.get(parentId)
+			return widgetStore.get('todo-list')
 			.then((todosState: WidgetStateRecord) => [...todosState.children, ...ids])
-			.then((children: string[]) => widgetStore.patch({ id: parentId, children }))
+			.then((children: string[]) => widgetStore.patch({ id: 'todo-list', children }))
 			.then(() => counterUpdate.do());
 		});
 	}
 });
 
-const create: AnyAction = createAction({
+export const create: AnyAction = createActionWithStore({
 	configure,
 	do(options: any) {
+		const { widgetStore } = <WithStore> this;
 		const id = generateId();
-		const widgetStore = this.configuration.widgetStore;
-		const parentId = this.configuration.parentId;
-
 		const label = options.label;
 
 		return widgetStore.add({ id, label, completed: false, classes: [] })
-		.then(() => widgetStore.get(parentId))
+		.then(() => widgetStore.get('todo-list'))
 		.then((todosState: WidgetStateRecord) => [...todosState.children, id])
-		.then((children: string[]) => widgetStore.patch({ id: parentId, children }))
+		.then((children: string[]) => widgetStore.patch({ id: 'todo-list', children }))
 		.then(() => counterUpdate.do())
 		.then(() => {
 			return request.post('todo/' + id, {
@@ -153,28 +175,10 @@ const create: AnyAction = createAction({
 	}
 });
 
-interface CompletePatchObject {
-	id: string;
-	completed: boolean;
-	classes?: string[];
-}
-
-const todoCompleteClass = 'completed';
-
-function setClass(todoItemState: any, className: string, action: string) {
-	const idx = todoItemState.classes.indexOf(className);
-	if (idx  === -1 && action !== 'remove') {
-		todoItemState.classes.push(className);
-	} else if (idx !== -1 && action !== 'add') {
-		todoItemState.classes.splice(idx, 1);
-	}
-	return todoItemState.classes;
-}
-
-const toggleComplete: AnyAction = createAction({
+export const toggleComplete: AnyAction = createActionWithStore({
 	configure,
 	do(options: any) {
-		const widgetStore = this.configuration.widgetStore;
+		const { widgetStore } = <WithStore> this;
 		const itemId = options.id;
 		const action = options.action || 'toggle';
 		const patchObject: CompletePatchObject = {
@@ -183,7 +187,7 @@ const toggleComplete: AnyAction = createAction({
 		};
 
 		return widgetStore.get(itemId)
-		.then((todoItemState: any) => setClass(todoItemState, todoCompleteClass, action))
+		.then((todoItemState: WidgetStateRecord) => setClass(todoItemState, 'completed', action))
 		.then((classes: string[]) => {
 			patchObject.classes = classes;
 			return widgetStore.patch(patchObject);
@@ -200,10 +204,10 @@ const toggleComplete: AnyAction = createAction({
 	}
 });
 
-const destroy: AnyAction = createAction({
+export const destroy: AnyAction = createActionWithStore({
 	configure,
 	do(options: any) {
-		const widgetStore = this.configuration.widgetStore;
+		const { widgetStore } = <WithStore> this;
 		const parentId = this.configuration.parentId;
 		const childIds = options.ids || [options.id];
 
@@ -212,7 +216,7 @@ const destroy: AnyAction = createAction({
 		.then((children: string[]) => widgetStore.patch({ id: parentId, children }))
 		.then(() => counterUpdate.do())
 		.then(() => {
-			return chain(childIds, function(id: any) {
+			return chain(childIds, function(id: string) {
 				return request.delete('todo/' + id + '/delete', {
 					headers: {
 						'Content-Type': 'application/json'
@@ -232,17 +236,17 @@ const destroy: AnyAction = createAction({
 	}
 });
 
-const enterTodoEdit: AnyAction = createAction({
+export const enterTodoEdit: AnyAction = createActionWithStore({
 	configure,
 	do(options: any) {
-		const widgetStore = this.configuration.widgetStore;
+		const { widgetStore } = <WithStore> this;
 		const itemId = options.id;
-		const patchObject: any = {
+		const patchObject: WidgetStateRecord = {
 			id: itemId
 		};
 
 		return widgetStore.get(itemId)
-		.then((todoItemState: any) => setClass(todoItemState, 'editing', 'add'))
+		.then((todoItemState: WidgetStateRecord) => setClass(todoItemState, 'editing', 'add'))
 		.then((classes: string[]) => {
 			patchObject.classes = classes;
 			return widgetStore.patch(patchObject);
@@ -250,20 +254,20 @@ const enterTodoEdit: AnyAction = createAction({
 	}
 });
 
-const saveTodoEdit: AnyAction = createAction({
+export const saveTodoEdit: AnyAction = createActionWithStore({
 	configure,
 	do(options: any) {
+		const { widgetStore } = <WithStore> this;
 		const target = <any> options.event.target;
-		const widgetStore = this.configuration.widgetStore;
 		const itemId = options.id;
-		const patchObject: any = {
+		const patchObject: WidgetStateRecord = {
 			id: itemId,
 			label: target.value
 		};
 
 		if (options.event.keyCode === 13 && target.value) {
 			return widgetStore.get(itemId)
-			.then((todoItemState: any) => setClass(todoItemState, 'editing', 'remove'))
+			.then((todoItemState: WidgetStateRecord) => setClass(todoItemState, 'editing', 'remove'))
 			.then((classes: string[]) => {
 				patchObject.classes = classes;
 				return widgetStore.patch(patchObject);
@@ -280,17 +284,17 @@ const saveTodoEdit: AnyAction = createAction({
 	}
 });
 
-const exitTodoEdit: AnyAction = createAction({
+export const exitTodoEdit: AnyAction = createActionWithStore({
 	configure,
 	do(options: any) {
 		console.log('blur');
 	}
 });
 
-const filter: AnyAction = createAction({
+export const filter: AnyAction = createActionWithStore({
 	configure,
-	do(options: any) {
-		const widgetStore = this.configuration.widgetStore;
+	do(options: {filter: string}) {
+		const { widgetStore } = <WithStore> this;
 		const allClasses: string[] = [];
 		const activeClasses: string[] = [];
 		const completedClasses: string[] = [];
@@ -311,70 +315,41 @@ const filter: AnyAction = createAction({
 	}
 });
 
-const toggleAll: AnyAction = createAction({
+export const toggleAll: AnyAction = createActionWithStore({
 	configure,
-	do(options: any) {
-		this.configuration.getStore('widget-store').then((widgetStore: any) => {
-			return widgetStore.get('todo-toggle-all').then((toggleAllState: any) => {
-				return getTodoListItems(widgetStore).then((todoItems: any) => {
-					const checked = toggleAllState.checked;
-					const action = checked ? 'remove' : 'add';
-					return chain(todoItems, function(item: any) {
-						return toggleComplete.do({'id': item.id, 'complete': !checked, action });
-					});
+	do() {
+		const { widgetStore } = <WithStore> this;
+		return widgetStore.get('todo-toggle-all').then((toggleAllState: WidgetStateRecord) => {
+			return getTodoListItems(widgetStore).then((todoItems: any[]) => {
+				const checked = toggleAllState.checked;
+				const action = checked ? 'remove' : 'add';
+				return chain(todoItems, function(item: any) {
+					return toggleComplete.do({'id': item.id, 'complete': !checked, action });
 				});
 			});
 		});
 	}
 });
 
-const clearCompleted: AnyAction = createAction({
+export const clearCompleted: AnyAction = createActionWithStore({
 	configure,
 	do() {
-		return this.configuration.getStore('widget-store').then((widgetStore: any) => {
-			return getTodoListItems(widgetStore).then((childWidgets: any) => {
-				const ids = childWidgets.reduce((previous: any, current: any) => {
-					if (current.completed) {
-						previous.push(current.id);
-					}
-					return previous;
-				}, []);
-				if (ids.length > 0) {
-					return destroy.do({ids}).then(() => {
-						return widgetStore.get('clear-completed').then((widgetState: any) => {
-							return widgetStore.patch({'id': 'clear-completed', 'classes': setClass(widgetState, 'hidden', 'add')});
-						});
-					});
+		const { widgetStore } = <WithStore> this;
+		return getTodoListItems(widgetStore).then((childWidgets: any[]) => {
+			const ids = childWidgets.reduce((previous: string[], current: WidgetStateRecord) => {
+				if (current.completed) {
+					previous.push(current.id);
 				}
-			});
+				return previous;
+			}, []);
+			if (ids.length > 0) {
+				return destroy.do({ids}).then(() => {
+					return widgetStore.get('clear-completed').then((widgetState: WidgetStateRecord) => {
+						return widgetStore.patch({'id': 'clear-completed', 'classes': setClass(widgetState, 'hidden', 'add')});
+					});
+				});
+			}
 		});
 	}
 });
 
-function registerAll (configuration: TodoActionConfiguration) {
-	create.configure(configuration);
-	destroy.configure(configuration);
-	toggleComplete.configure(configuration);
-	createMany.configure(configuration);
-	enterTodoEdit.configure(configuration);
-	saveTodoEdit.configure(configuration);
-	exitTodoEdit.configure(configuration);
-	filter.configure(configuration);
-	counterUpdate.configure(configuration);
-	checkTodoItemCount.configure(configuration);
-	toggleStates.configure(configuration);
-}
-
-export {
-	createMany as createManyAction,
-	create as createTodoAction,
-	toggleComplete as toggleCompleteTodoAction,
-	destroy as destroyTodoAction,
-	enterTodoEdit as enterTodoEditAction,
-	saveTodoEdit as saveTodoEditAction,
-	exitTodoEdit as exitTodoEditAction,
-	filter as filterAction,
-	toggleAll as toggleAllAction,
-	clearCompleted as clearCompletedAction,
-	registerAll as registerTodoActions
-};
