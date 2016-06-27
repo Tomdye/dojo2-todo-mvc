@@ -208,12 +208,11 @@ export const destroy: AnyAction = createActionWithStore({
 	configure,
 	do(options: any) {
 		const { widgetStore } = <WithStore> this;
-		const parentId = this.configuration.parentId;
 		const childIds = options.ids || [options.id];
 
-		return widgetStore.get(parentId)
+		return widgetStore.get('todo-list')
 		.then((todosState: WidgetStateRecord) => todosState.children.filter((id) => childIds.indexOf(id) === -1))
-		.then((children: string[]) => widgetStore.patch({ id: parentId, children }))
+		.then((children: string[]) => widgetStore.patch({ id: 'todo-list', children }))
 		.then(() => counterUpdate.do())
 		.then(() => {
 			return chain(childIds, function(id: string) {
