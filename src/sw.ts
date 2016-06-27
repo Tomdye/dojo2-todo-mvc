@@ -12,18 +12,18 @@ interface RequestConstructor {
 
 declare const Request: RequestConstructor;
 
-/*const payload: any[] = [{id: 1, label: 'todo 1', completed: false},
+const payload: any[] = [{id: 1, label: 'todo 1', completed: false},
 	{id: 2, label: 'todo 2', completed: true}
-];*/
+];
 
 self.addEventListener('install', function(event: InstallEvent) {
-	/*event.waitUntil(
+	event.waitUntil(
 		self.caches.open('todos').then(cache => {
 			return cache.put(
 				new Request('/todos'), new Response(JSON.stringify(payload), { headers: { 'Content-Type': 'application/json'}}))
 				.then(() => self.skipWaiting());
 		})
-	);*/
+	);
 });
 
 self.addEventListener('activate', function(event: any) {
@@ -90,30 +90,6 @@ self.addEventListener('fetch', function(event: FetchEvent) {
 						});
 					});
 				});
-			})
-		);
-	}
-	else {
-		event.respondWith(
-			self.caches.match(event.request)
-			.then(function(response) {
-				if (response) {
-					return response;
-				}
-				const fetchRequest = event.request.clone();
-				return self.fetch(fetchRequest).then(
-					function(response) {
-						if (!response || response.status !== 200 || response.type !== 'basic') {
-							return response;
-						}
-						const responseToCache = response.clone();
-						self.caches.open('static')
-						.then(function(cache) {
-							cache.put(event.request, responseToCache);
-						});
-						return response;
-					}
-				);
 			})
 		);
 	}
