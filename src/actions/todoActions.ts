@@ -152,26 +152,31 @@ export const create: AnyAction = createActionWithStore({
 	do(options: any) {
 		const { widgetStore } = <WithStore> this;
 		const id = generateId();
-		const label = options.label;
+		const event: KeyboardEvent = options.event;
+		const target = <any> event.target;
+		const label = target.value;
 
-		return widgetStore.add({ id, label, completed: false, classes: [] })
-		.then(() => widgetStore.get('todo-list'))
-		.then((todosState: WidgetStateRecord) => [...todosState.children, id])
-		.then((children: string[]) => widgetStore.patch({ id: 'todo-list', children }))
-		.then(() => counterUpdate.do())
-		.then(() => {
-			return request.post('todo/' + id, {
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				data: {
-					id,
-					label,
-					completed: false
-				}
-			});
-		})
-		.then(() => id);
+		if (event.keyCode === 13 && target.value) {
+			return widgetStore.add({ id, label, completed: false, classes: [] })
+			.patch({'id': 'todo-new-item', 'value': ''})
+			.then(() => widgetStore.get('todo-list'))
+			.then((todosState: WidgetStateRecord) => [...todosState.children, id])
+			.then((children: string[]) => widgetStore.patch({ id: 'todo-list', children }))
+			.then(() => counterUpdate.do())
+			.then(() => {
+				return request.post('todo/' + id, {
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					data: {
+						id,
+						label,
+						completed: false
+					}
+				});
+			})
+			.then(() => id);
+		}
 	}
 });
 

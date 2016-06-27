@@ -1,4 +1,3 @@
-import createAction from 'dojo-actions/createAction';
 import createApp from 'dojo-app/createApp';
 import request from 'dojo-core/request';
 import createRoute from 'dojo-routing/createRoute';
@@ -24,6 +23,7 @@ import {
 	saveTodoEdit,
 	exitTodoEdit
 } from './actions/todoActions';
+import { gotoAllRoute, gotoActiveRoute, gotoCompletedRoute, HistoryState } from './actions/routerActions';
 import todoRegistryFactory from './registry/createTodoRegistry';
 import createTodoList from './widgets/createTodoList';
 import createCheckboxInput from './widgets/createCheckboxInput';
@@ -57,6 +57,12 @@ router.append(createRoute({
 	}
 }));
 
+const historyStore = createMemoryStore<HistoryState>({
+	data: [
+		{'id': 'history', 'history': history}
+	]
+});
+
 const widgetStore = createMemoryStore({
 	data: [
 		{'id': 'todo-app', 'classes': ['todoapp']},
@@ -79,44 +85,10 @@ const widgetStore = createMemoryStore({
 });
 
 app.registerStore('widget-store', widgetStore);
+app.registerStore('history-store', historyStore);
 
-const addTodo = createAction({
-	do(e: any) {
-		const event: KeyboardEvent = e.event;
-		const target = <any> event.target;
-		if (event.keyCode === 13 && target.value) {
-			widgetStore.patch({'id': 'todo-new-item', 'value': ''});
-			create.do({
-				label: target.value
-			});
-		}
-	}
-});
-
-const gotoCompleted = createAction({
-	do() {
-		history.set('completed');
-	}
-});
-
-const gotoActive = createAction({
-	do() {
-		history.set('active');
-	}
-});
-
-const gotoAll = createAction({
-	do() {
-		history.set('all');
-	}
-});
-
-app.registerAction('add-todo', addTodo);
-app.registerAction('create', create);
+app.registerAction('add-todo', create);
 app.registerAction('toggle-all', toggleAll);
-app.registerAction('goto-completed', gotoCompleted);
-app.registerAction('goto-active', gotoActive);
-app.registerAction('goto-all', gotoAll);
 app.registerAction('clear-completed', clearCompleted);
 app.registerAction('create-many', createMany);
 app.registerAction('filter', filter);
@@ -128,6 +100,10 @@ app.registerAction('destroy', destroy);
 app.registerAction('enter-todo-edit', enterTodoEdit);
 app.registerAction('save-todo', saveTodoEdit);
 app.registerAction('exit-todo-edit', exitTodoEdit);
+
+app.registerAction('goto-completed', gotoCompletedRoute);
+app.registerAction('goto-active', gotoActiveRoute);
+app.registerAction('goto-all', gotoAllRoute);
 
 app.loadDefinition({
 	widgets: [
@@ -192,7 +168,7 @@ Promise.all([
 	app.getAction('check-item-count'),
 	app.getAction('toggle-states'),
 	app.getAction('update-counter'),
-	app.getAction('create'),
+	app.getAction('add-todo'),
 	app.getAction('toggle-complete'),
 	app.getAction('destroy'),
 	app.getAction('enter-todo-edit'),
