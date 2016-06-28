@@ -6,7 +6,6 @@ module.exports = function (grunt) {
 		copy: {
 			staticFiles: {
 				expand: true,
-				flatten: true,
 				cwd: '.',
 				src: staticFiles,
 				dest: '<%= devDirectory %>'
@@ -16,7 +15,7 @@ module.exports = function (grunt) {
 
 	grunt.registerTask('dev', [
 		'typings',
-		'tslint',
+		/*'tslint',*/
 		'clean:dev',
 		'ts:dev',
 		'copy:staticFiles',
