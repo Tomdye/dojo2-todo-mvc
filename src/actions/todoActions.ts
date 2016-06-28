@@ -3,11 +3,7 @@ import request from 'dojo-core/request';
 import { MemoryStore } from 'dojo-widgets/util/createMemoryStore';
 import { CombinedRegistry } from 'dojo-app/createApp';
 
-import { WidgetStateRecord } from './../interfaces';
-
-interface WithStore {
-	widgetStore?: MemoryStore<WidgetStateRecord>;
-}
+import { WidgetStateRecord, WithStore } from './../interfaces';
 
 function configure (registry: CombinedRegistry) {
 	const action = <WithStore> this;
