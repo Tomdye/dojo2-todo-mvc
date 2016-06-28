@@ -8,6 +8,7 @@ import createTextInput from 'dojo-widgets/createTextInput';
 import createWidget from 'dojo-widgets/createWidget';
 import createMemoryStore from 'dojo-widgets/util/createMemoryStore';
 
+import { WidgetStateRecord } from './interfaces';
 import {
 	createMany,
 	filter,
@@ -63,7 +64,7 @@ const historyStore = createMemoryStore<HistoryState>({
 	]
 });
 
-const widgetStore = createMemoryStore({
+const widgetStore = createMemoryStore<WidgetStateRecord>({
 	data: [
 		{'id': 'todo-app', 'classes': ['todoapp']},
 		{'id': 'todo-list', 'classes': ['todo-list'], children: []},

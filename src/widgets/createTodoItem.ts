@@ -1,10 +1,16 @@
-import createWidget, { Widget, WidgetState } from 'dojo-widgets/createWidget';
 import createButton, { Button } from 'dojo-widgets/createButton';
 import createTextInput, { TextInput } from 'dojo-widgets/createTextInput';
-import createCheckboxInput, { CheckboxInput } from './createCheckboxInput';
+import createWidget, { Widget, WidgetState } from 'dojo-widgets/createWidget';
 import { h, VNode } from 'maquette/maquette';
 
-import { destroy, toggleComplete, enterTodoEdit, saveTodoEdit, exitTodoEdit } from '../actions/todoActions';
+import {
+	destroy,
+	toggleComplete,
+	enterTodoEdit,
+	saveTodoEdit,
+	exitTodoEdit
+} from './../actions/todoActions';
+import createCheckboxInput, { CheckboxInput } from './createCheckboxInput';
 
 export interface TodoItemMixin {
 	childWidgets: TodoItemChildWidgets;

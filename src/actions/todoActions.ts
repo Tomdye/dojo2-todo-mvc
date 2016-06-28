@@ -3,21 +3,7 @@ import request from 'dojo-core/request';
 import { MemoryStore } from 'dojo-widgets/util/createMemoryStore';
 import { CombinedRegistry } from 'dojo-app/createApp';
 
-interface WidgetStateRecord {
-	[prop: string]: any;
-	id: string;
-	classes?: string[];
-	label?: string;
-	children?: string[];
-	completed?: boolean;
-	checked?: boolean;
-}
-
-interface CompletePatchObject {
-	id: string;
-	completed: boolean;
-	classes?: string[];
-}
+import { WidgetStateRecord } from './../interfaces';
 
 interface WithStore {
 	widgetStore?: MemoryStore<WidgetStateRecord>;
@@ -186,7 +172,7 @@ export const toggleComplete: AnyAction = createActionWithStore({
 		const { widgetStore } = <WithStore> this;
 		const itemId = options.id;
 		const action = options.action || 'toggle';
-		const patchObject: CompletePatchObject = {
+		const patchObject: WidgetStateRecord = {
 			id: itemId,
 			completed: options.complete
 		};

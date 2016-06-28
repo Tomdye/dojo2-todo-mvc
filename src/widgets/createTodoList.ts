@@ -1,10 +1,12 @@
 import createWidget from 'dojo-widgets/createWidget';
+import createParentMixin from 'dojo-widgets/mixins/createParentListMixin';
+import createRenderableChildrenMixin, { RenderableChildrenMixin } from 'dojo-widgets/mixins/createRenderableChildrenMixin';
+import createStatefulChildrenMixin from 'dojo-widgets/mixins/createStatefulChildrenMixin';
+import { Child } from 'dojo-widgets/mixins/interfaces';
 import { VNode } from 'maquette/maquette';
 import { List } from 'immutable/immutable';
-import { Child } from 'dojo-widgets/mixins/interfaces';
-import createParentMixin from 'dojo-widgets/mixins/createParentListMixin';
-import createStatefulChildrenMixin from 'dojo-widgets/mixins/createStatefulChildrenMixin';
-import createRenderableChildrenMixin, { RenderableChildrenMixin } from 'dojo-widgets/mixins/createRenderableChildrenMixin';
+
+import { WidgetStateRecord } from './../interfaces';
 
 function filterCompleted(children: List<Child>): List<Child> {
 	return <List<Child>> children.filter((child: any) => {
@@ -27,7 +29,7 @@ const createTodoList = createWidget
 
 		getChildrenNodes(): (VNode | string)[] {
 			const renderableChildren: RenderableChildrenMixin & {
-				state: any;
+				state: WidgetStateRecord;
 				children: List<Child>;
 			} = this;
 			const results: (VNode | string)[] = [];
@@ -39,7 +41,7 @@ const createTodoList = createWidget
 			} else if (renderableChildren.state.filter === 'active') {
 				filteredChildren = filterActive(children);
 			}
-			filteredChildren.forEach((child: any) => results.push(child.render()));
+			filteredChildren.forEach((child: Child) => results.push(child.render()));
 			return results;
 		}
 	});

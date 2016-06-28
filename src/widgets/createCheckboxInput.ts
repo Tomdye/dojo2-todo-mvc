@@ -1,8 +1,8 @@
 import { ComposeFactory } from 'dojo-compose/compose';
-import createWidget, { Widget, WidgetOptions } from 'dojo-widgets/createWidget';
-import { VNodeProperties } from 'maquette/maquette';
 import { assign } from 'dojo-core/lang';
+import createWidget, { Widget, WidgetOptions } from 'dojo-widgets/createWidget';
 import createFormFieldMixin, { FormFieldMixin, FormFieldMixinState, FormFieldMixinOptions } from 'dojo-widgets/mixins/createFormFieldMixin';
+import { VNodeProperties } from 'maquette/maquette';
 
 /* I suspect this needs to go somewhere else */
 export interface TypedTargetEvent<T extends EventTarget> extends Event {
