@@ -8,7 +8,7 @@
 
 ## Running
 
-To run the app, run the following commands and spin up an HTTP server (e.g. python -m SimpleHTTPServer) and visit http://localhost/.../build/src/.
+To run the app, execute the following commands and spin up an HTTP server (e.g. python -m SimpleHTTPServer) and visit http://localhost/.../build/src/.
 
 ```
 cd /path/to/todomvc
